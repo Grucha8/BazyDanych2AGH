@@ -47,6 +47,7 @@ SELECT *
   FROM uczestnicy_wycieczki(12) w
 WHERE w.status_rezerwacji = 'N';
 
+----------------------------------------------------------------------
 -- b)
 create or REPLACE FUNCTION rezerwacje_osoby(id_osoby_i in NUMBER)
   RETURN uczestnicy_wycieczki_table
@@ -83,6 +84,7 @@ AS
 SELECT *
 FROM REZERWACJE_OSOBY(5);
 
+----------------------------------------------------------------------
 -- c)
 CREATE or REPLACE FUNCTION przyszle_rezerwacje (id_osoby_i in NUMBER)
   return uczestnicy_wycieczki_table
@@ -119,6 +121,7 @@ AS
 SELECT *
 FROM przyszle_rezerwacje(26);
 
+----------------------------------------------------------------------
 -- d)
 create or replace type przyszle_wycieczki_type as OBJECT (
   id_wyczieczki NUMBER,

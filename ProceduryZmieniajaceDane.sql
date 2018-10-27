@@ -47,6 +47,7 @@ BEGIN
   dodaj_rezerwacje(1, 25);
 END;
 
+--------------------------------------------------------------------------------
 -- b)
 CREATE OR REPLACE PROCEDURE zmien_status_rezerwacji (id_rezerwacji_i in NUMBER, status_i in CHAR)
   AS
@@ -101,10 +102,47 @@ CREATE OR REPLACE PROCEDURE zmien_status_rezerwacji (id_rezerwacji_i in NUMBER, 
     UPDATE REZERWACJE r
     SET r.STATUS = status_i
     WHERE r.NR_REZERWACJI = id_rezerwacji_i;
+
+    -- 6 punkt
+    INSERT INTO REZERWACJE_LOG(ID_REZERWACJI, DATA, STATUS)
+    VALUES (id_rezerwacji_i, current_date, status_i);
   END;
 
 BEGIN
   zmien_status_rezerwacji(23, 'A');
 END;
 
+
+--------------------------------------------------------------------------------
 -- c)
+CREATE OR REPLACE PROCEDURE zmien_liczbe_miejsc(id_wycieczki_i in NUMBER, liczba_miejsc_i in NUMBER)
+  AS
+    id_w_exists NUMBER;
+  BEGIN
+    -- sprawdzanie czy id istnieje i czy w przyszlosci
+    SELECT CASE
+      WHEN exists(SELECT *
+                  FROM WYCIECZKI w
+                  WHERE w.ID_WYCIECZKI = id_wycieczki_i AND w.DATA > current_date)
+        THEN 1
+        ELSE 0
+    END
+      INTO id_w_exists
+      FROM dual;
+
+    IF id_w_exists = 0 THEN
+      raise_application_error(-20000, 'Nie ma takiej wycieczki lub juz sie odbyla');
+    END IF;
+    --
+    IF (liczba_miejsc_i - ZAJETE_MIEJSCA(id_wycieczki_i)) < 0 THEN
+      raise_application_error(-20000, 'Nowa wartosc jest za mala');
+    END IF;
+
+    UPDATE WYCIECZKI w
+    SET w.LICZBA_MIEJSC = liczba_miejsc_i
+    WHERE w.ID_WYCIECZKI = id_wycieczki_i;
+  END;
+
+BEGIN
+  zmien_liczbe_miejsc(12, 2);
+END;
