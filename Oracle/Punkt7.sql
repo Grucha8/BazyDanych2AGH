@@ -78,6 +78,7 @@ AS
   id_w_exist NUMBER;
   id_o_exist NUMBER;
   czy_da_sie_dodac NUMBER;
+  id_rezerwacji_r NUMBER;
   BEGIN
     IF id_wycieczki_i is NULL OR id_osoby_i is NULL THEN
       raise_application_error(-20001, 'Musisz podac argumenty');
@@ -112,7 +113,12 @@ AS
 
     -- dodajemy
     INSERT INTO REZERWACJE(ID_WYCIECZKI, ID_OSOBY, STATUS)
-    VALUES (id_wycieczki_i, id_osoby_i, 'N');
+    VALUES (id_wycieczki_i, id_osoby_i, 'N')
+    RETURNING NR_REZERWACJI INTO id_rezerwacji_r;
+
+    -- aktualizacja logow
+    INSERT INTO REZERWACJE_LOG(ID_REZERWACJI, DATA, STATUS)
+    VALUES (id_rezerwacji_r, current_date, 'N');
 
     -- punkt 7: aktualizujemy pole liczba_wolnych_miejsc
     UPDATE WYCIECZKI w
@@ -196,3 +202,50 @@ END;
 
 SELECT *
 FROM REZERWACJE;
+
+
+CREATE OR REPLACE PROCEDURE zmien_liczbe_miejsc_2(id_wycieczki_i in NUMBER, liczba_miejsc_i in NUMBER)
+  AS
+    id_w_exists NUMBER;
+    liczba_wolnych_miejsc_obecnie NUMBER;
+    liczba_miejsc_obecnie NUMBER;
+  BEGIN
+    -- sprawdzanie czy id istnieje i czy w przyszlosci
+    SELECT CASE
+      WHEN exists(SELECT *
+                  FROM WYCIECZKI w
+                  WHERE w.ID_WYCIECZKI = id_wycieczki_i AND w.DATA > current_date)
+        THEN 1
+        ELSE 0
+    END
+      INTO id_w_exists
+      FROM dual;
+
+    IF id_w_exists = 0 THEN
+      raise_application_error(-20000, 'Nie ma takiej wycieczki lub juz sie odbyla');
+    END IF;
+    --
+    SELECT w.LICZBA_WOLNYCH_MIEJSC, w.LICZBA_MIEJSC
+    INTO liczba_wolnych_miejsc_obecnie, liczba_miejsc_obecnie
+    FROM WYCIECZKI w
+    WHERE w.ID_WYCIECZKI = id_wycieczki_i;
+
+    -- sprawdzamy czy nowa liczba miejsc jset poprawna
+    IF (liczba_wolnych_miejsc_obecnie - (liczba_miejsc_obecnie - liczba_miejsc_i)) < 0 THEN
+      raise_application_error(-20000, 'Nowa wartosc jest za mala');
+    END IF;
+
+    UPDATE WYCIECZKI w
+    SET
+      w.LICZBA_WOLNYCH_MIEJSC = w.LICZBA_WOLNYCH_MIEJSC + (liczba_miejsc_i - w.LICZBA_MIEJSC),
+      w.LICZBA_MIEJSC = liczba_miejsc_i
+    WHERE w.ID_WYCIECZKI = id_wycieczki_i;
+
+END;
+
+BEGIN
+  zmien_liczbe_miejsc_2(21, 13);
+END;
+
+
+

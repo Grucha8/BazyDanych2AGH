@@ -5,6 +5,7 @@ AS
   id_w_exist NUMBER;
   id_o_exist NUMBER;
   czy_da_sie_dodac NUMBER;
+  id_rezerwacji_r NUMBER;
   BEGIN
     IF id_wycieczki_i is NULL OR id_osoby_i is NULL THEN
       raise_application_error(-20001, 'Musisz podac argumenty');
@@ -39,8 +40,12 @@ AS
 
     -- dodajemy
     INSERT INTO REZERWACJE(ID_WYCIECZKI, ID_OSOBY, STATUS)
-    VALUES (id_wycieczki_i, id_osoby_i, 'N');
+    VALUES (id_wycieczki_i, id_osoby_i, 'N')
+    RETURNING NR_REZERWACJI INTO id_rezerwacji_r;
 
+    -- punkt 6
+    INSERT INTO REZERWACJE_LOG(ID_REZERWACJI, DATA, STATUS)
+    VALUES (id_rezerwacji_r, current_date, 'N');
   END;
 
 BEGIN
